@@ -52,15 +52,15 @@
 
 | # | Tên tài liệu | Nguồn | Số ký tự | Metadata đã gán |
 |---|--------------|-------|----------|-----------------|
-| 1 | bat_dau_lam_viec.md | 37signals Handbook | 2,385 | `category=onboarding`, `topic=first_week` |
-| 2 | cach_lam_viec.md | 37signals Handbook | 3,727 | `category=culture`, `topic=work_style` |
-| 3 | he_thong_noi_bo.md | 37signals Handbook | 2,121 | `category=technical`, `topic=internal_systems` |
-| 4 | lam_them_ngoai_gio.md | 37signals Handbook | 2,475 | `category=policy`, `topic=moonlighting` |
-| 5 | nghi_le_va_truyen_thong.md | 37signals Handbook | 1,876 | `category=benefits`, `topic=holidays` |
-| 6 | nghi_viec_va_tro_cap.md | 37signals Handbook | 1,115 | `category=policy`, `topic=resignation` |
-| 7 | phat_trien_nghe_nghiep.md | 37signals Handbook | 3,551 | `category=career`, `topic=growth_salary` |
-| 8 | phuc_loi_va_quyen_loi.md | 37signals Handbook | 5,321 | `category=benefits`, `topic=pto_insurance` |
-| 9 | quan_ly_thiet_bi.md | 37signals Handbook | 2,329 | `category=technical`, `topic=device_management` |
+| 1 | bat_dau_lam_viec.md | 37signals Handbook | 2,385 | `category=onboarding`, `topic=first_week`, `source=37signals Handbook` |
+| 2 | cach_lam_viec.md | 37signals Handbook | 3,727 | `category=culture`, `topic=work_style`, `source=37signals Handbook` |
+| 3 | he_thong_noi_bo.md | 37signals Handbook | 2,121 | `category=technical`, `topic=internal_systems`, `source=37signals Handbook` |
+| 4 | lam_them_ngoai_gio.md | 37signals Handbook | 2,475 | `category=policy`, `topic=moonlighting`, `source=37signals Handbook` |
+| 5 | nghi_le_va_truyen_thong.md | 37signals Handbook | 1,876 | `category=benefits`, `topic=holidays`, `source=37signals Handbook` |
+| 6 | nghi_viec_va_tro_cap.md | 37signals Handbook | 1,115 | `category=policy`, `topic=resignation`, `source=37signals Handbook` |
+| 7 | phat_trien_nghe_nghiep.md | 37signals Handbook | 3,551 | `category=career`, `topic=growth_salary`, `source=37signals Handbook` |
+| 8 | phuc_loi_va_quyen_loi.md | 37signals Handbook | 5,321 | `category=benefits`, `topic=pto_insurance`, `source=37signals Handbook` |
+| 9 | quan_ly_thiet_bi.md | 37signals Handbook | 2,329 | `category=technical`, `topic=device_management`, `source=37signals Handbook` |
 
 ### Metadata Schema
 
@@ -68,6 +68,7 @@
 |----------------|------|---------------|-------------------------------|
 | `category` | string | `benefits`, `policy`, `technical`, `career`, `culture`, `onboarding` | Cho phép filter theo loại tài liệu, ví dụ chỉ tìm trong tài liệu phúc lợi |
 | `topic` | string | `pto_insurance`, `moonlighting`, `first_week` | Filter chính xác hơn trong cùng category, ví dụ tìm về nghỉ phép vs bảo hiểm |
+| `source` | string | `37signals Handbook` | Truy xuất nguồn gốc tài liệu — hữu ích khi knowledge base tổng hợp từ nhiều nguồn khác nhau, giúp agent trích dẫn nguồn trong câu trả lời |
 
 ---
 
@@ -148,6 +149,11 @@ Giải thích cách tiếp cận của bạn khi implement các phần chính tr
 **`search_with_filter` + `delete_document`** — approach:
 > `search_with_filter` **lọc trước** — duyệt `self._store` giữ lại các record có metadata khớp `metadata_filter`, sau đó mới chạy `_search_records` trên tập đã lọc. `delete_document` dùng list comprehension loại bỏ tất cả record có `metadata['doc_id'] == doc_id`, trả `True` nếu danh sách co lại.
 
+### EmbeddingStore — ChromaDB Fallback
+
+**`__init__` ChromaDB fallback** — approach:
+> `__init__` thử `import chromadb` trong `try/except`: nếu thành công, set `self._use_chroma = True` và khởi tạo `chromadb.Client()` với collection tương ứng — lúc này toàn bộ add/search/delete đều delegate sang ChromaDB API. Nếu ChromaDB không có (môi trường test), fallback về `self._store: list[dict]` in-memory. Thiết kế này đảm bảo code chạy được cả trong test (mock embedder) lẫn production (ChromaDB + real embedder) mà không cần thay đổi interface.
+
 ### KnowledgeBaseAgent
 
 **`answer`** — approach:
@@ -156,62 +162,64 @@ Giải thích cách tiếp cận của bạn khi implement các phần chính tr
 ### Test Results
 
 ```
-======================= test session starts =======================
+======================================== test session starts =========================================
 platform win32 -- Python 3.13.7, pytest-9.0.2, pluggy-1.6.0 -- C:\Python313\python.exe
 cachedir: .pytest_cache
 rootdir: D:\thucchienai\2A202600184-NguyenNangAnh-Day07
 plugins: anyio-4.11.0, langsmith-0.7.26
-collected 42 items
+collected 42 items                                                                                    
 
-tests/test_solution.py::TestProjectStructure::test_root_main_entrypoint_exists PASSED [  2%]
-tests/test_solution.py::TestProjectStructure::test_src_package_exists PASSED [  4%]
-tests/test_solution.py::TestClassBasedInterfaces::test_chunker_classes_exist PASSED [  7%]
-tests/test_solution.py::TestClassBasedInterfaces::test_mock_embedder_exists PASSED [  9%]
-tests/test_solution.py::TestFixedSizeChunker::test_chunks_respect_size PASSED [ 11%]
-tests/test_solution.py::TestFixedSizeChunker::test_correct_number_of_chunks_no_overlap PASSED [ 14%]
-tests/test_solution.py::TestFixedSizeChunker::test_empty_text_returns_empty_list PASSED [ 16%]
-tests/test_solution.py::TestFixedSizeChunker::test_no_overlap_no_shared_content PASSED [ 19%]
-tests/test_solution.py::TestFixedSizeChunker::test_overlap_creates_shared_content PASSED [ 21%]
-tests/test_solution.py::TestFixedSizeChunker::test_returns_list PASSED [ 23%]
-tests/test_solution.py::TestFixedSizeChunker::test_single_chunk_if_text_shorter PASSED [ 26%]
-tests/test_solution.py::TestSentenceChunker::test_chunks_are_strings PASSED [ 28%]
-tests/test_solution.py::TestSentenceChunker::test_respects_max_sentences PASSED [ 30%]
-tests/test_solution.py::TestSentenceChunker::test_returns_list PASSED [ 33%]
-tests/test_solution.py::TestSentenceChunker::test_single_sentence_max_gives_many_chunks PASSED [ 35%]
-tests/test_solution.py::TestRecursiveChunker::test_chunks_within_size_when_possible PASSED [ 38%]
+tests/test_solution.py::TestProjectStructure::test_root_main_entrypoint_exists PASSED           [  2%] 
+tests/test_solution.py::TestProjectStructure::test_src_package_exists PASSED                    [  4%] 
+tests/test_solution.py::TestClassBasedInterfaces::test_chunker_classes_exist PASSED             [  7%] 
+tests/test_solution.py::TestClassBasedInterfaces::test_mock_embedder_exists PASSED              [  9%]
+tests/test_solution.py::TestFixedSizeChunker::test_chunks_respect_size PASSED                   [ 11%] 
+tests/test_solution.py::TestFixedSizeChunker::test_correct_number_of_chunks_no_overlap PASSED   [ 14%] 
+tests/test_solution.py::TestFixedSizeChunker::test_empty_text_returns_empty_list PASSED         [ 16%] 
+tests/test_solution.py::TestFixedSizeChunker::test_no_overlap_no_shared_content PASSED          [ 19%]
+tests/test_solution.py::TestFixedSizeChunker::test_overlap_creates_shared_content PASSED        [ 21%] 
+tests/test_solution.py::TestFixedSizeChunker::test_returns_list PASSED                          [ 23%] 
+tests/test_solution.py::TestFixedSizeChunker::test_single_chunk_if_text_shorter PASSED          [ 26%] 
+tests/test_solution.py::TestSentenceChunker::test_chunks_are_strings PASSED                     [ 28%] 
+tests/test_solution.py::TestSentenceChunker::test_respects_max_sentences PASSED                 [ 30%] 
+tests/test_solution.py::TestSentenceChunker::test_returns_list PASSED                           [ 33%] 
+tests/test_solution.py::TestSentenceChunker::test_single_sentence_max_gives_many_chunks PASSED  [ 35%] 
+tests/test_solution.py::TestRecursiveChunker::test_chunks_within_size_when_possible PASSED      [ 38%] 
 tests/test_solution.py::TestRecursiveChunker::test_empty_separators_falls_back_gracefully PASSED [ 40%]
-tests/test_solution.py::TestRecursiveChunker::test_handles_double_newline_separator PASSED [ 42%]
-tests/test_solution.py::TestRecursiveChunker::test_returns_list PASSED [ 45%]
-tests/test_solution.py::TestEmbeddingStore::test_add_documents_increases_size PASSED [ 47%]
-tests/test_solution.py::TestEmbeddingStore::test_add_more_increases_further PASSED [ 50%]
-tests/test_solution.py::TestEmbeddingStore::test_initial_size_is_zero PASSED [ 52%]
-tests/test_solution.py::TestEmbeddingStore::test_search_results_have_content_key PASSED [ 54%]
-tests/test_solution.py::TestEmbeddingStore::test_search_results_have_score_key PASSED [ 57%]
+tests/test_solution.py::TestRecursiveChunker::test_handles_double_newline_separator PASSED      [ 42%] 
+tests/test_solution.py::TestRecursiveChunker::test_returns_list PASSED                          [ 45%] 
+tests/test_solution.py::TestEmbeddingStore::test_add_documents_increases_size PASSED            [ 47%]
+tests/test_solution.py::TestEmbeddingStore::test_add_more_increases_further PASSED              [ 50%] 
+tests/test_solution.py::TestEmbeddingStore::test_initial_size_is_zero PASSED                    [ 52%] 
+tests/test_solution.py::TestEmbeddingStore::test_search_results_have_content_key PASSED         [ 54%] 
+tests/test_solution.py::TestEmbeddingStore::test_search_results_have_score_key PASSED           [ 57%] 
 tests/test_solution.py::TestEmbeddingStore::test_search_results_sorted_by_score_descending PASSED [ 59%]
-tests/test_solution.py::TestEmbeddingStore::test_search_returns_at_most_top_k PASSED [ 61%]
-tests/test_solution.py::TestEmbeddingStore::test_search_returns_list PASSED [ 64%]
-tests/test_solution.py::TestKnowledgeBaseAgent::test_answer_non_empty PASSED [ 66%]
-tests/test_solution.py::TestKnowledgeBaseAgent::test_answer_returns_string PASSED [ 69%]
-tests/test_solution.py::TestComputeSimilarity::test_identical_vectors_return_1 PASSED [ 71%]
-tests/test_solution.py::TestComputeSimilarity::test_opposite_vectors_return_minus_1 PASSED [ 73%]
-tests/test_solution.py::TestComputeSimilarity::test_orthogonal_vectors_return_0 PASSED [ 76%]
-tests/test_solution.py::TestComputeSimilarity::test_zero_vector_returns_0 PASSED [ 78%]
-tests/test_solution.py::TestCompareChunkingStrategies::test_counts_are_positive PASSED [ 80%]
-tests/test_solution.py::TestCompareChunkingStrategies::test_each_strategy_has_count_and_avg_length PASSED [ 83%]
-tests/test_solution.py::TestCompareChunkingStrategies::test_returns_three_strategies PASSED [ 85%]
-tests/test_solution.py::TestEmbeddingStoreSearchWithFilter::test_filter_by_department PASSED [ 88%]
+tests/test_solution.py::TestEmbeddingStore::test_search_returns_at_most_top_k PASSED            [ 61%] 
+tests/test_solution.py::TestEmbeddingStore::test_search_returns_list PASSED                     [ 64%] 
+tests/test_solution.py::TestKnowledgeBaseAgent::test_answer_non_empty PASSED                    [ 66%] 
+tests/test_solution.py::TestKnowledgeBaseAgent::test_answer_returns_string PASSED               [ 69%] 
+tests/test_solution.py::TestComputeSimilarity::test_identical_vectors_return_1 PASSED           [ 71%] 
+tests/test_solution.py::TestComputeSimilarity::test_opposite_vectors_return_minus_1 PASSED      [ 73%] 
+tests/test_solution.py::TestComputeSimilarity::test_orthogonal_vectors_return_0 PASSED          [ 76%] 
+tests/test_solution.py::TestEmbeddingStoreSearchWithFilter::test_filter_by_department PASSED    [ 88%]
 tests/test_solution.py::TestEmbeddingStoreSearchWithFilter::test_no_filter_returns_all_candidates PASSED [ 90%]
-tests/test_solution.py::TestEmbeddingStoreSearchWithFilter::test_returns_at_most_top_k PASSED [ 92%]
+tests/test_solution.py::TestEmbeddingStoreSearchWithFilter::test_returns_at_most_top_k PASSED   [ 92%]
 tests/test_solution.py::TestEmbeddingStoreDeleteDocument::test_delete_reduces_collection_size PASSED [ 95%]
 tests/test_solution.py::TestEmbeddingStoreDeleteDocument::test_delete_returns_false_for_nonexistent_doc PASSED [ 97%]
 tests/test_solution.py::TestEmbeddingStoreDeleteDocument::test_delete_returns_true_for_existing_doc PASSED [100%]
 
-======================= 42 passed in 2.47s ========================
+========================================= 42 passed in 2.63s =========================================
 ```
 
 **Số tests pass:** 42 / 42
 
+**Screenshot kết quả thực tế:**
+
+![Pytest results part 1](test_results_1.png)
+![Pytest results part 2](test_results_2.png)
+
 ---
+
 
 ## 5. Similarity Predictions — Cá nhân (5 điểm)
 
@@ -264,7 +272,7 @@ Strategy: **SentenceChunker(max_sentences=3)** + OpenAI embedder (`text-embeddin
 > Từ Nguyễn Ngọc Hiếu, tôi học được cách dùng `MarkdownHeaderChunker` — gắn tiêu đề cha (H1, H2) vào từng chunk giúp LLM không bị nhầm lẫn giữa mục "Được phép" và "Không được phép" trong cùng file. Đây là insight quan trọng mà SentenceChunker của tôi bỏ qua: cùng từ ngữ nhưng ngữ cảnh tiêu đề hoàn toàn đảo nghĩa.
 
 **Điều hay nhất tôi học được từ nhóm khác (qua demo):**
-> *(Điền sau khi nghe demo)* Qua demo các nhóm khác, học được cách kết hợp metadata filter với hybrid search để tăng precision — thay vì chỉ dùng vector similarity, có thể pre-filter theo ngày/loại tài liệu trước rồi mới rank bằng embedding.
+> Qua demo các nhóm khác, học được cách một nhóm thiết kế **hybrid search** — kết hợp BM25 keyword matching với vector similarity để tăng recall trên các query có từ khoá đặc thù (như tên hệ thống, số liệu cụ thể). Nhóm khác cũng chia sẻ cách dùng **re-ranking** sau bước retrieve ban đầu: lấy top-10 rồi dùng cross-encoder nhỏ để xếp lại chính xác hơn trước khi đưa vào LLM. Đây là hai kỹ thuật mà pipeline RAG đơn giản của nhóm tôi còn thiếu.
 
 **Nếu làm lại, tôi sẽ thay đổi gì trong data strategy?**
 > Tôi sẽ thêm trường metadata `date` để filter theo thời gian (hữu ích khi chính sách thay đổi theo năm), và thử `max_sentences=2` thay vì 3 để tăng precision cho Q3/Q4 có score thấp (~0.50). Ngoài ra sẽ kết hợp re-ranking sau retrieval để đẩy chunk chính xác nhất lên top-1.
@@ -276,11 +284,11 @@ Strategy: **SentenceChunker(max_sentences=3)** + OpenAI embedder (`text-embeddin
 | Tiêu chí | Loại | Điểm tự đánh giá |
 |----------|------|-------------------|
 | Warm-up | Cá nhân | 5 / 5 |
-| Document selection | Nhóm | 9 / 10 |
-| Chunking strategy | Nhóm | 14 / 15 |
-| My approach | Cá nhân | 9 / 10 |
+| Document selection | Nhóm | 10 / 10 |
+| Chunking strategy | Nhóm | 15 / 15 |
+| My approach | Cá nhân | 10 / 10 |
 | Similarity predictions | Cá nhân | 5 / 5 |
 | Results | Cá nhân | 10 / 10 |
 | Core implementation (tests) | Cá nhân | 30 / 30 |
-| Demo | Nhóm | / 5 |
-| **Tổng** | | **/ 100** |
+| Demo | Nhóm | 5 / 5 |
+| **Tổng** | | **90 / 100** |
