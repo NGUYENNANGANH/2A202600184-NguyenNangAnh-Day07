@@ -263,11 +263,11 @@ Strategy: **SentenceChunker(max_sentences=3)** + OpenAI embedder (`text-embeddin
 
 | # | Query | Top-1 Retrieved Chunk (tóm tắt) | Score | Relevant? | Agent Answer (tóm tắt) |
 |---|-------|--------------------------------|-------|-----------|------------------------|
-| 1 | Nghỉ phép bao nhiêu ngày? | phuc_loi — "Nghỉ Phép Dài Hạn (Sabbatical)..." | 0.7060 | Co | 20 ngày PTO + 11 ngày lễ, tối đa tích lũy 27 ngày |
-| 2 | Chính sách làm thêm ngoài giờ? | lam_them_ngoai_gio — "Làm thêm ngoài giờ nghĩa là..." | 0.6676 | Co | Cho phép công việc phụ, không làm cho đối thủ |
-| 3 | Gặp ai tuần đầu tiên? | bat_dau_lam_viec — "tài liệu với liên kết hữu ích..." | 0.5437 | Co | Gặp quản lý, nhóm, buddy và People Ops (Andrea) |
-| 4 | Mức lương tối thiểu? | phat_trien — "vị trí tại 37signals không khớp..." | 0.5025 | Co | Lương tối thiểu $73,500, top 10% San Francisco |
-| 5 | Hệ thống theo dõi lỗi? | he_thong_noi_bo — "Sentry - Chúng tôi theo dõi lỗi..." | 0.5768 | Co | Sentry lỗi, Grafana giám sát, Dash logging |
+| 1 | Nghỉ phép bao nhiêu ngày? | phuc_loi — "Nghỉ Phép Dài Hạn (Sabbatical)..." | 0.7060 | Có | 20 ngày PTO + 11 ngày lễ, tối đa tích lũy 27 ngày |
+| 2 | Chính sách làm thêm ngoài giờ? | lam_them_ngoai_gio — "Làm thêm ngoài giờ nghĩa là..." | 0.6676 | Có | Cho phép công việc phụ, không làm cho đối thủ |
+| 3 | Gặp ai tuần đầu tiên? | bat_dau_lam_viec — "tài liệu với liên kết hữu ích..." | 0.5437 | Có | Gặp quản lý, nhóm, buddy và People Ops (Andrea) |
+| 4 | Mức lương tối thiểu? | phat_trien — "vị trí tại 37signals không khớp..." | 0.5025 | Có | Lương tối thiểu $73,500, top 10% San Francisco |
+| 5 | Hệ thống theo dõi lỗi? | he_thong_noi_bo — "Sentry - Chúng tôi theo dõi lỗi..." | 0.5768 | Có | Sentry lỗi, Grafana giám sát, Dash logging |
 
 **Bao nhiêu queries trả về chunk relevant trong top-3?** 5 / 5
 
@@ -308,7 +308,8 @@ Strategy: **SentenceChunker(max_sentences=3)** + OpenAI embedder (`text-embeddin
 | Chunking strategy | Nhóm | 15 / 15 |
 | My approach | Cá nhân | 10 / 10 |
 | Similarity predictions | Cá nhân | 5 / 5 |
-| Results | Cá nhân | 10 / 10 |
+| Results (Competition) | Cá nhân | 10 / 10 |
+| Retrieval quality | Nhóm | 10 / 10 |
 | Core implementation (tests) | Cá nhân | 30 / 30 |
 | Demo | Nhóm | 5 / 5 |
-| **Tổng** | | **90 / 100** |
+| **Tổng** | | **100 / 100** |
