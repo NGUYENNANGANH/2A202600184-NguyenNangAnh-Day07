@@ -152,7 +152,10 @@ Giải thích cách tiếp cận của bạn khi implement các phần chính tr
 ### EmbeddingStore — ChromaDB Fallback
 
 **`__init__` ChromaDB fallback** — approach:
-> `__init__` thử `import chromadb` trong `try/except`: nếu thành công, set `self._use_chroma = True` và khởi tạo `chromadb.Client()` với collection tương ứng — lúc này toàn bộ add/search/delete đều delegate sang ChromaDB API. Nếu ChromaDB không có (môi trường test), fallback về `self._store: list[dict]` in-memory. Thiết kế này đảm bảo code chạy được cả trong test (mock embedder) lẫn production (ChromaDB + real embedder) mà không cần thay đổi interface.
+> `__init__` kiểm tra `embedding_fn is None` trước: nếu đúng (production mode — không inject mock), mới thử `import chromadb` trong `try/except`. Nếu thành công, khởi tạo `chromadb.EphemeralClient()` và gọi `get_or_create_collection` — `EphemeralClient` đảm bảo mỗi instance có DB riêng hoàn toàn, tránh state lẫn nhau giữa các lần chạy. Khi `embedding_fn` được truyền vào (luôn là trường hợp trong tests), ChromaDB không được kích hoạt — store dùng `self._store: list[dict]` in-memory. Thiết kế này phân tách rõ hai chế độ: test (mock embedder → in-memory, clean, no side-effect) và production (real embedder → ChromaDB) mà không cần thay đổi interface.
+
+**`delete_document`** — ChromaDB support:
+> Khi ở chế độ ChromaDB, gọi `collection.get(where={"doc_id": doc_id})` để lấy danh sách IDs của các chunks thuộc document đó, sau đó `collection.delete(ids=[...])` để xóa đúng trên ChromaDB. Khi ở in-memory, dùng list comprehension lọc bỏ records có `metadata["doc_id"] == doc_id`. Cả hai nhánh đều trả `True` nếu có chunk bị xóa, `False` nếu không tìm thấy.
 
 ### KnowledgeBaseAgent
 
@@ -229,11 +232,11 @@ tests/test_solution.py::TestEmbeddingStoreDeleteDocument::test_delete_returns_tr
 
 | Pair | Sentence A | Sentence B | Dự đoán | Actual Score | Đúng? |
 |------|-----------|-----------|---------|--------------|-------|
-| 1 | Nhân viên được nghỉ 20 ngày phép mỗi năm. | Mỗi năm công ty cấp cho nhân viên 20 ngày nghỉ phép có lương. | high | 0.8650 | Co |
-| 2 | Nhân viên được nghỉ 20 ngày phép mỗi năm. | Công ty dùng Sentry để theo dõi lỗi lập trình. | low | 0.3271 | Co |
-| 3 | Buddy 37signals sẽ hướng dẫn nhân viên mới. | Nhân viên mới cần gặp quản lý và nhóm trong tuần đầu tiên. | high | 0.5122 | Gan dung (thuc ra la medium) |
-| 4 | Không được làm việc cho đối thủ cạnh tranh. | Có thể kinh doanh phụ vài giờ mỗi tuần nếu không ảnh hưởng đến công việc chính. | medium | 0.4147 | Co |
-| 5 | Mức lương tối thiểu là $73,500 mỗi năm. | Trời hôm nay rất đẹp và nắng. | low | 0.2630 | Co |
+| 1 | Nhân viên được nghỉ 20 ngày phép mỗi năm. | Mỗi năm công ty cấp cho nhân viên 20 ngày nghỉ phép có lương. | high | 0.8650 | Có |
+| 2 | Nhân viên được nghỉ 20 ngày phép mỗi năm. | Công ty dùng Sentry để theo dõi lỗi lập trình. | low | 0.3271 | Có |
+| 3 | Buddy 37signals sẽ hướng dẫn nhân viên mới. | Nhân viên mới cần gặp quản lý và nhóm trong tuần đầu tiên. | high | 0.5122 | Gần đúng (thực ra là medium) |
+| 4 | Không được làm việc cho đối thủ cạnh tranh. | Có thể kinh doanh phụ vài giờ mỗi tuần nếu không ảnh hưởng đến công việc chính. | medium | 0.4147 | Có |
+| 5 | Mức lương tối thiểu là $73,500 mỗi năm. | Trời hôm nay rất đẹp và nắng. | low | 0.2630 | Có |
 
 **Kết quả nào bất ngờ nhất? Điều này nói gì về cách embeddings biểu diễn nghĩa?**
 > **Pair 3 bất ngờ nhất** — dự đoán HIGH (cùng chủ đề onboarding) nhưng thực tế chỉ đạt 0.51 (medium). Embedding nhận ra hai câu nói về các đối tượng khác nhau (buddy vs quản lý/nhóm), dù cùng context. Điều này chứng tỏ OpenAI embedding không chỉ nhìn đến từ khóa ("nhân viên mới") mà còn hiểu được sự khác biệt ngữ nghĩa giữa “người hướng dẫn không chính thức” và “người quản lý cấp trên”.
