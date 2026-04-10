@@ -268,6 +268,19 @@ Strategy: **SentenceChunker(max_sentences=3)** + OpenAI embedder (`text-embeddin
 
 ## 7. What I Learned (5 điểm — Demo)
 
+**Failure Analysis (Exercise 3.5):**
+
+| # | Query | Vấn đề | Nguyên nhân | Đề xuất |
+|---|-------|---------|-------------|---------|
+| 1 | Q3 — Nhân viên mới cần gặp ai tuần đầu? | Top-1 chunk score thấp (0.54), nội dung chunk là "tài liệu với liên kết hữu ích" — không phải câu trả lời trực tiếp | **Chunk coherence**: SentenceChunker gom câu giới thiệu tổng quát với danh sách người cần gặp vào cùng chunk → câu trả lời bị "pha loãng", embedding không capture rõ từ khoá "gặp ai" | Dùng `max_sentences=2` để tách nhỏ hơn, hoặc `MarkdownHeaderChunker` để giữ context tiêu đề "Tuần đầu tiên" |
+| 2 | Q4 — Mức lương tối thiểu và cách tính? | Top-1 score 0.50 — chunk trả về "vị trí tại 37signals không khớp..." — thiếu thông tin cụ thể về con số | **Retrieval precision**: SentenceChunker tách câu chính sách lương thành nhiều chunk nhỏ rời rạc, chunk chứa "$73,500" không được rank top-1 vì vector của nó cạnh tranh với chunk cùng file | Thêm metadata filter `category=career` để thu hẹp phạm vi search trước khi rank |
+
+> **Góc nhìn đánh giá (theo EVALUATION.md):**
+> - *Retrieval Precision*: Q3/Q4 đều retrieve đúng file nhưng chunk trả về không phải đoạn tốt nhất → precision bị giảm dù recall đúng.
+> - *Chunk Coherence*: SentenceChunker với `max_sentences=3` đôi khi gom câu ngữ cảnh chung vào cùng chunk với câu thông tin cụ thể, làm vector embedding bị "trung bình hoá".
+> - *Metadata Utility*: Nếu dùng `search_with_filter(category="career")` cho Q4, candidate pool giảm còn 1 file → chunk lương sẽ rank cao hơn.
+> - *Grounding Quality*: Agent vẫn trả lời đúng Q3/Q4 vì top-3 combined có đủ thông tin, nhưng nếu dùng top-1 only thì sẽ thiếu chi tiết.
+
 **Điều hay nhất tôi học được từ thành viên khác trong nhóm:**
 > Từ Nguyễn Ngọc Hiếu, tôi học được cách dùng `MarkdownHeaderChunker` — gắn tiêu đề cha (H1, H2) vào từng chunk giúp LLM không bị nhầm lẫn giữa mục "Được phép" và "Không được phép" trong cùng file. Đây là insight quan trọng mà SentenceChunker của tôi bỏ qua: cùng từ ngữ nhưng ngữ cảnh tiêu đề hoàn toàn đảo nghĩa.
 
